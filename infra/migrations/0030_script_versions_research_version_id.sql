@@ -1,0 +1,1 @@
+CREATE INDEX script_versions_research_version_id_idx ON script_versions(research_version_id);

@@ -1,0 +1,1 @@
+CREATE TRIGGER research_versions_no_delete BEFORE DELETE ON research_versions BEGIN SELECT RAISE(ABORT,'VERSION_HISTORY_REQUIRED'); END;

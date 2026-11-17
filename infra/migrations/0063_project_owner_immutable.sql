@@ -1,0 +1,2 @@
+CREATE TRIGGER project_owner_immutable BEFORE UPDATE OF owner_id ON projects WHEN NEW.owner_id IS NOT OLD.owner_id
+BEGIN SELECT RAISE(ABORT,'PROJECT_OWNER_IMMUTABLE'); END;

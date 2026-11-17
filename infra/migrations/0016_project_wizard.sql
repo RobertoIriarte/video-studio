@@ -1,0 +1,1 @@
+ALTER TABLE projects ADD COLUMN wizard_step INTEGER NOT NULL DEFAULT 1 CHECK (wizard_step BETWEEN 1 AND 5);

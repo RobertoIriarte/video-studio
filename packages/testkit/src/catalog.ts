@@ -1,0 +1,7 @@
+import type { AssetInput, ResearchInput, SceneVersionInput, ScriptInput } from '@video-studio/contracts';
+import { FIXTURE_TIMESTAMP, fixtureId } from './index.js';
+
+export const researchFixture = (): ResearchInput => ({ data: { schemaVersion: 1, notes: ['Afirmación sintética por revisar'] }, sources: [{ url: null, title: 'Notas propias de prueba', acquiredAt: FIXTURE_TIMESTAMP, notes: 'Fixture, sin fuente remota inventada.', provenance: 'MANUAL', accessStatus: 'UNKNOWN' }] });
+export const scriptFixture = (researchVersionId: string | null = null): ScriptInput => ({ researchVersionId, data: { schemaVersion: 1, title: 'Guion sintético', paragraphs: ['Introducción de prueba.'] }, targetDurationMs: 10000 });
+export const assetFixture = (): AssetInput => ({ type: 'IMAGE', mime: 'image/png', bytes: 128, checksum: 'a'.repeat(64), durationMs: null, width: 1920, height: 1080, origin: 'MANUAL', license: { status: 'UNVERIFIED', fixture: true }, prompt: null });
+export const sceneVersionFixture = (scriptVersionId = fixtureId(900)): SceneVersionInput => ({ scriptVersionId, parentVersionId: null, narration: 'Narración sintética.', direction: { schemaVersion: 1, style: 'DOCUMENTARY' }, durationMs: 10000, generationScope: 'ALL', shots: [{ orderIndex: 0, durationMs: 10000, type: 'IMAGE', prompt: 'Paisaje de prueba.', camera: { movement: 'SLOW_PAN' }, transition: { type: 'CUT' }, assetId: null }], assetLinks: [] });

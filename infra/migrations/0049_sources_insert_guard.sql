@@ -1,0 +1,1 @@
+CREATE TRIGGER sources_insert_guard BEFORE INSERT ON sources WHEN COALESCE((SELECT status FROM research_versions WHERE id=NEW.research_version_id),'MISSING')<>'DRAFT' BEGIN SELECT RAISE(ABORT,'VERSION_CHILD_IMMUTABLE'); END;

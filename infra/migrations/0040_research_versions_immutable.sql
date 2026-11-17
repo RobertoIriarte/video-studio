@@ -1,0 +1,1 @@
+CREATE TRIGGER research_versions_immutable BEFORE UPDATE ON research_versions WHEN NEW.id IS NOT OLD.id OR NEW.project_id IS NOT OLD.project_id OR NEW.version_no IS NOT OLD.version_no OR NEW.data_json IS NOT OLD.data_json OR NEW.content_hash IS NOT OLD.content_hash OR NEW.created_at IS NOT OLD.created_at BEGIN SELECT RAISE(ABORT,'VERSION_IMMUTABLE'); END;

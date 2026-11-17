@@ -1,0 +1,2 @@
+CREATE TRIGGER active_script_insert_scope BEFORE INSERT ON projects WHEN NEW.active_script_version_id IS NOT NULL
+BEGIN SELECT RAISE(ABORT,'ACTIVE_SCRIPT_INVALID'); END;

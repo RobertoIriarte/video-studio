@@ -1,0 +1,1 @@
+CREATE TRIGGER shots_update_guard BEFORE UPDATE ON shots WHEN COALESCE((SELECT status FROM scene_versions WHERE id=OLD.scene_version_id),'MISSING')<>'DRAFT' OR COALESCE((SELECT status FROM scene_versions WHERE id=NEW.scene_version_id),'MISSING')<>'DRAFT' BEGIN SELECT RAISE(ABORT,'VERSION_CHILD_IMMUTABLE'); END;

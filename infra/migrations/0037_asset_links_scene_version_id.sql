@@ -1,0 +1,1 @@
+CREATE INDEX asset_links_scene_version_id_idx ON asset_links(scene_version_id);

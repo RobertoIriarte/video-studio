@@ -1,0 +1,1 @@
+CREATE TRIGGER asset_content_immutable BEFORE UPDATE OF id,project_id,owner_id,type,mime,bytes,checksum,duration_ms,width,height,origin,provider_id,generation_id,license_json,prompt,r2_key,created_at ON assets BEGIN SELECT RAISE(ABORT,'ASSET_IMMUTABLE'); END;

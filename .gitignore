@@ -1,0 +1,40 @@
+# Dependencias y salidas reproducibles
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+*.log
+.vite/
+.cache/
+
+# Configuración privada y credenciales locales
+.env*
+!.env.example
+.dev.vars*
+*.pem
+*.key
+
+# Estado local: nunca subir bases reales ni multimedia de producción
+.wrangler/
+.local/
+media/
+renders/
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+*.mp4
+*.mov
+*.mkv
+*.webm
+*.mp3
+*.wav
+
+# Artefactos de herramientas locales
+playwright-report/
+test-results/
+.DS_Store
+Thumbs.db
+**/dist-demo/

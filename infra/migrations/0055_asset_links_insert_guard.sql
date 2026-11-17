@@ -1,0 +1,1 @@
+CREATE TRIGGER asset_links_insert_guard BEFORE INSERT ON asset_links WHEN COALESCE((SELECT status FROM scene_versions WHERE id=NEW.scene_version_id),'MISSING')<>'DRAFT' BEGIN SELECT RAISE(ABORT,'VERSION_CHILD_IMMUTABLE'); END;

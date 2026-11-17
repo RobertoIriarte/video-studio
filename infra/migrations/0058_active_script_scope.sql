@@ -1,0 +1,1 @@
+CREATE TRIGGER active_script_scope BEFORE UPDATE OF active_script_version_id ON projects WHEN NEW.active_script_version_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM script_versions WHERE id=NEW.active_script_version_id AND project_id=NEW.id AND status='APPROVED') BEGIN SELECT RAISE(ABORT,'ACTIVE_SCRIPT_INVALID'); END;

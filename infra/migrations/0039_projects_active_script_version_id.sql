@@ -1,0 +1,1 @@
+CREATE INDEX projects_active_script_version_id_idx ON projects(active_script_version_id);

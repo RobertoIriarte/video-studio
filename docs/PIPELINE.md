@@ -1,0 +1,32 @@
+# Orquestación, agentes y multimedia
+
+## DAG de producción
+Entrada/validación → investigación (si tema/fuentes; opcional si guion propio con claims a revisar) → guion → checkpoint guion → dirección → checkpoint dirección → planificación de voz y recursos → alineación de voz/timings + producción de recursos paralelos → validación de tomas → montaje declarativo → QA → correcciones acotadas → render → QA técnica final → SEO/exportación. No iniciar generación visual costosa antes de plan de duración compatible; recursos independientes pueden correr paralelamente cuando permisos y tiempos lo permitan. Dependencias exactas por versión y hash, no por nombre de etapa.
+
+## Contratos de agentes
+Cada agente tiene prompt versionado, role, input explícito (sin secretos), output Zod, timeout, límites de tokens, errores y metadatos. Tratar textos externos como datos no instrucciones; no ejecutar código/comandos ni exfiltrar. Guardar modelo/versión de prompt, hashes, usage, resultados (con acceso privado). Si JSON inválido, un intento acotado de reparación estructurada, después fallo revisable. Nunca inventar hechos, enlaces ni resultados de herramientas.
+
+| Rol | Entrada | Salida esperada |
+|---|---|---|
+| RESEARCH | tema, referencias, audiencia, idioma | claims[{id,statement,sourceIds,confidence}], sources[{id,title,url?,notes}], outlineSuggestions, uncertainties |
+| SCRIPT | investigación/versiones, duración, objetivo | title, hook, sections[{stableKey,title,narration,claimIds,targetDurationMs}], closing, approximateWords, riskNotes |
+| DIRECTOR | guion, estilo, modalidad, audio policy | scenes[{stableKey,narration,shotPlans[],musicMood,sfx,continuityNotes}], visualBible, warnings |
+| QA | manifest, script, timings, metadatos, findings técnicos | findings[{severity:BLOCKER/WARN/INFO,sceneId?,component,reason,suggestedAction}], passed |
+| SEO | video final, timeline, guion | title, description, chapters[{startMs,title}], tags[], thumbnailIdeas[], disclosureSuggestions |
+
+ShotPlan incluye duración objetivo, assetType, subject, composition, framing, cameraMotion, light, mood, visualPrompt, negativePrompt?, refs, startFrame/endFrame si procede, transition, audioCue, source/license requirement. Diferenciar escenas narrativas de tomas breves. VisualBible conserva personajes, ubicaciones, paleta y continuidad; compartir referencias autorizadas por asset ID. Prompts visuales en idioma preferido del proveedor, narración en idioma proyecto. No incluir texto gráfico generado si se requiere exactitud; usar composición programática.
+
+## Estados de jobs
+PENDING (dependencias/fecha aún no), READY, RUNNING, WAITING_APPROVAL, WAITING_MANUAL, WAITING_RESOURCE, RETRY_SCHEDULED, PAUSED, SUCCEEDED, FAILED, CANCELLED, STALE. READY solo si dependencias completadas y versiones vigentes. Claim atómico READY→RUNNING (lease). RUNNING→SUCCEEDED tras resultado validado y publicación; →RETRY_SCHEDULED solo fallo recuperable y presupuesto; →FAILED agotado/no recuperable; →WAITING_MANUAL/RESOURCE por falta de integración/agente; →PAUSED en punto seguro; →STALE si se invalida entrada. Estado terminal nunca puede duplicar salida. Reintento de FAILED con acción explícita crea intento y conserva historial. STALE no reactivar sin nuevo input hash. Pausa proyecto: impedir nuevos claims, solicitar pausa a jobs activos; dejar operar llamadas externas irreversibles y reconciliar resultado; mostrar PAUSING hasta seguro. Reanudar verifica dependencias, versiones, leases y presupuesto. Cancelación no garantiza recuperar costos ya cobrados.
+
+## Scheduler y resiliencia
+- ID lógico de job = hash de project, kind, input version(s), scope, explicit regeneration nonce. Un reintento de red no crea nuevo trabajo; regeneración intencional sí.
+- Dependencias acíclicas validadas y creadas antes de liberar READY. Tick en lotes acotados; compara fecha servidor. Adquirir lease por update condicional; fencing para completar; recuperar expirados con reconciliación antes de retry si hubo efectos externos.
+- Defaults configurables: tres intentos contando inicial, backoff exponencial con jitter 15s→60s→tope 10min; respetar Retry-After. 4xx input/auth no retry automático; rate limit/transitorio sí, salvo gasto incierto. Si operación externa aceptada, persistir providerOperationId y polling; si timeout y no idempotencia externa, UNKNOWN y revisión, nunca repetir a ciegas.
+- Paralelismo por proyecto/tipo/proveedor; inicial conservador 1–2 jobs por adaptador, configurar según cuota verificada. Reservar presupuesto antes de ejecutar. Reconciliar reservas cuando job termina; costo desconocido bloquea intentos caros hasta revisión. QA auto-correcciones máximo 2 rondas por manifest; blocker persistente espera usuario.
+
+## Regeneración e invalidación
+Crear candidato desde versión base. Scope visual conserva narración/timing si compatible; voz nueva recalcula timing y marca visual incompatible para revisar; narración cambia voz, sincronización, dirección semántica, montaje y derivados; música/ambiente cambia mezcla/montaje/QA/render; montaje cambia QA/render/SEO capítulos. No borrar otros recursos. Si el candidato se activa, comparar hashes y marcar únicamente dependientes STALE, encolar necesarios. Un render inmutable conserva manifest de su versión aunque cambie proyecto.
+
+## Montaje / render
+RenderManifest versionado: projectId, width=1920,height=1080,fps=30 (default propuesto), durationMs, scenes ordenadas (sceneVersionId, startMs, durationMs, shots con assetId/hash, trim, fit, motion, transition), audio tracks (voice/music/sfx, offsets, gain, fades), overlays programáticos, outputPreset, checksum/hash. Validar duraciones, frames calculados de manera determinista, assets presentes, continuidad, fit, fuentes válidas y licencia, ningún path de cliente. Normalización con FFmpeg y FFprobe; composición Remotion para imágenes dinámicas/overlays/transiciones; evitar transcodificar repetidamente. Perfil propuesto MP4 H.264 video, AAC audio, yuv420p, 1920x1080, 16:9; definir calidad/fps configurable tras pruebas reales. Auditar audio inteligible/sin clipping (medir loudness, objetivo propuesto -14 LUFS integrado y peak <= -1 dBTP cuando viable), silencios, sync, fotogramas negros imprevistos y salida con FFprobe. Preview baja resolución opcional; salida final no se declara lista hasta validar archivo, checksum, tamaño, duración y audio. Render local puede tomar tiempo sin bloquear UI; conservar logs locales sanitizados y comunicar progreso por frames cuando medible.

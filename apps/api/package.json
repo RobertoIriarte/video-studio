@@ -1,0 +1,27 @@
+{
+  "name": "@video-studio/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "db:migrate:local": "wrangler d1 migrations apply DB --local --config ../../infra/wrangler.local.json",
+    "dev": "node ../../infra/scripts/local-api.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "build": "tsc --noEmit -p tsconfig.json && wrangler deploy --dry-run --outdir ../apps/api/dist --config ../../infra/wrangler.local.json"
+  },
+  "dependencies": {
+    "@video-studio/contracts": "workspace:*",
+    "@video-studio/domain": "workspace:*",
+    "@video-studio/providers": "workspace:*",
+    "better-auth": "1.7.25",
+    "hono": "4.13.19",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20260722.1",
+    "wrangler": "4.115.0"
+  }
+}

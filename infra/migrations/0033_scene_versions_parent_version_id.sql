@@ -1,0 +1,1 @@
+CREATE INDEX scene_versions_parent_version_id_idx ON scene_versions(parent_version_id);

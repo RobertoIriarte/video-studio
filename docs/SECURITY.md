@@ -1,0 +1,16 @@
+# Seguridad, privacidad y operación
+
+## Identidad y autorización
+Better Auth con email/password; registro público cerrado por defecto: bootstrap propietario a través de procedimiento explícito y seguro (sin contraseña hardcodeada). Sesión cookies HttpOnly/Secure en producción y SameSite adecuado; CSRF/origen validado en cambios con cookie. CORS origen exacto, nunca wildcard con credenciales. Rate limit a login, pairing y mutaciones; no enumerar usuarios. Rotar auth secret según procedimiento, revocar sesiones cuando corresponda. Todas las rutas prueban propiedad del recurso y relaciones; agente token separado y permisos mínimos. Respuestas 404 a acceso cruzado a entidad privada; no confiar en ownerId proporcionado por cliente.
+
+## Secretos
+Worker secrets/config segura, credenciales locales en almacén del sistema o archivo fuera del repo protegido. D1 almacena referencia no secreto en claro. UI solo muestra tipo/estado y última comprobación, no recuperar valor. `.env.example` sin valores reales, ignore `.env*` salvo ejemplo. No persistir cookies de ChatGPT/Flow ni exportar sesiones. Tokens de pairing de un solo uso expiran; agent token aleatorio de alta entropía, hash servidor, revocación y rotación. HTTPS obligatorio fuera de localhost; no exponer puerto del agente.
+
+## Amenazas y mitigaciones
+- URL de fuentes y stock: evitar SSRF, no localhost/red privada/link-local, solo HTTPS/HTTP permitido con DNS/IP/redirect revalidado, timeout, límite de bytes y rol. No extraer contenido autenticado sin permiso. Sanitizar HTML y tratar texto como no confiable para LLM.
+- Archivos: MIME verificado por firma y FFprobe, allowlist, límite tamaño/dimensiones/duración, nombre generado, verificar checksum, no ejecutar adjuntos/scripts/macros. No aceptar paths del usuario, resolver contra root y proteger symlinks/traversal; argv directo sin shell; FFmpeg sin protocolos red innecesarios. Validar overlays y fuentes; no ejecutar código generado por IA.
+- Ataques por duplicidad y carreras: idempotency key, lease fencing, expectedRevision, budget reservation condicional, revalidar antes de publicar. API privada R2 con URLs firmadas de TTL corto; no poner URL privada ni prompts completos en logs; validar acceso al generar cada URL.
+- Datos personales: minimizar inputs, no usar voces/rostros de terceros sin derechos apropiados, registrar licencia/procedencia y disclosure cuando corresponda. Permitir exportar archivos propios y archivar proyecto; borrado/retención futura con confirmación y backup.
+
+## Operación y recuperación
+Disk health antes de render; desconexión agente → WAITING_RESOURCE con explicación. Job lease expira y se reconcilia; operaciones inciertas no se repiten a ciegas. Temp parcial se restaura o limpia de forma segura según ownership. Backup versionado de D1, manifest, metadatos, versiones activas/requeridas y archivos finales según política; prueba restauración en entorno aislado. Separar staging/prod y backups, no sobreescribir. Registro de actividad de acciones sensibles, sin tokens ni datos privados innecesarios. Manual runbook: detectar blocker por job/request ID → revisar estado/costo/operación externa → intentar recuperación autorizada → verificar salida y actualizar estado. No borrar historial ni modificar DB manualmente como primera solución.

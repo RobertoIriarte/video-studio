@@ -1,0 +1,40 @@
+{
+  "name": "video-studio",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@9.12.1",
+  "engines": {
+    "node": "24.18.0",
+    "pnpm": "9.12.1"
+  },
+  "scripts": {
+    "local:setup": "node infra/scripts/private-env.mjs",
+    "owner:bootstrap": "node infra/scripts/bootstrap-owner.mjs",
+    "dev": "pnpm --parallel --filter @video-studio/api --filter @video-studio/web dev",
+    "dev:web": "pnpm --filter @video-studio/web dev",
+    "dev:api": "pnpm --filter @video-studio/api dev",
+    "dev:agent": "node infra/scripts/pending.mjs dev:agent F5-02",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "pnpm -r typecheck && tsc --noEmit -p tsconfig.json",
+    "test": "pnpm --filter @video-studio/api build && vitest run",
+    "test:e2e": "pnpm --filter @video-studio/api build && pnpm --filter @video-studio/web build && pnpm --filter @video-studio/web build:demo && node infra/scripts/e2e.mjs",
+    "build": "pnpm -r build",
+    "db:migrate:local": "pnpm --filter @video-studio/api db:migrate:local"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "24.10.1",
+    "@video-studio/contracts": "workspace:*",
+    "@video-studio/domain": "workspace:*",
+    "@video-studio/testkit": "workspace:*",
+    "eslint": "10.13.0",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.73.0",
+    "vite": "8.3.8",
+    "vitest": "5.1.0",
+    "miniflare": "4.20260722.1",
+    "@playwright/test": "1.65.1",
+    "@axe-core/playwright": "4.14.0"
+  }
+}
