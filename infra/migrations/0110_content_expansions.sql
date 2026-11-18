@@ -1,0 +1,1 @@
+CREATE TABLE content_expansions (job_id TEXT PRIMARY KEY NOT NULL REFERENCES jobs(id) ON DELETE RESTRICT, completed_at TEXT NOT NULL);

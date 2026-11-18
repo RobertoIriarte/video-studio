@@ -40,9 +40,13 @@ Versiones DRAFT/CANDIDATE/APPROVED/SUPERSEDED/INVALIDATED. Contenido binario y p
 DRAFT, RUNNING, WAITING_APPROVAL, WAITING_RESOURCE, PAUSING, PAUSED, FAILED, READY_RENDER, RENDERING, COMPLETED, ARCHIVED. Estado derivado de etapa/checkpoint/job y bandera pause_requested; actualizar en misma operación cuando sea posible o reconciliar. READY_RENDER requiere manifest válida y QA sin bloqueo. COMPLETED requiere render verificado y paquete YouTube listo (mostrar render listo aunque SEO esté pendiente). No recuperar por borrado de jobs.
 
 ## Índices y mantenimiento
+
+F3 añade migraciones 0065–0109: jobs/attempts/dependencies/activity/checkpoints, recibos, configuración y ledger. FK por proyecto/owner/proveedor, ciclos SQL rechazados y claves de identidad/fencing inmutables. Cambios de job, intento, actividad y reserva/liquidación ocurren en batches condicionales. Los recibos conservan el resultado original de comandos repetidos; UNKNOWN mantiene reservado el tope hasta verificación. La preparación/revisión usa los repositorios de catálogo existentes; no se crean renders ni generaciones de proveedor por anticipado. Detalle en ADR [0004](adr/0004-d1-orchestration.md) y [0005](adr/0005-provider-budget-policy.md).
 Paginación cursor estable por (updated_at,id) o (created_at,id). Índice en todas las FK consultadas frecuentemente, version_no por padre, owner de recursos, status/next_run_at y provider. Consultas por owner antes de mutar; no confiar en IDs del cliente. Probar constraints, duplicados, repo, migraciones y consistencia de costos. No realizar cascades destructivas de media sin autorización.
 
 ## Baseline local implementado en F2-01
+
+F4 añade 0110–0117: content_expansions, direction_expansions y scene_expansions como marcas de planificación recuperable; content_changes scoped e inmutable para auditoría; job_version_compatibility con FK por job/proyecto/escena y versiones exactas. No se modifican payloads aprobados ni hashes existentes. DTOs de catálogo anteriores siguen legibles; salidas nuevas de agentes usan esquemas JSON v1 adicionales. Modelo/prompt/output se guardan en catálogo privado y el input hash en jobs; no se introduce una tabla agent_runs redundante en esta entrega. Véase ADR 0006.
 
 `infra/migrations/0001` a `0005` crean solo `user`, `projects`, `project_settings` y los índices `(owner_id,updated_at DESC,id DESC)` / `(owner_id,status,updated_at DESC,id DESC)`. No crean tablas de versiones, jobs, media ni sesiones. Los índices PK/UNIQUE cubren identidad, email y FK de settings; las FK de owner y proyecto usan RESTRICT, sin cascades destructivas.
 
@@ -51,3 +55,18 @@ SQL comprueba claves no nulas/formato UUID básico, enums, campos requeridos, ra
 Creación de borrador y settings atómica mediante batch D1, IDs/fecha recibidos desde contexto servidor explícito y revisión inicial 1. Lecturas/listas de proyectos y settings exigen owner; archivados quedan fuera sin borrar filas. Listas no seleccionan `input_text`, usan límite 25/máximo 100 y cursor interno `(updatedAt,id)` descendente. La codificación de cursor HTTP y las mutaciones de edición/archivado quedan para F2-03. El owner debe proceder de identidad autenticada en las futuras rutas; esto no sustituye T02 ni implementa autenticación.
 
 `mode` está en projects y se incorpora al DTO settings al leer; settings mantiene su revisión independiente. `active_script_version_id` queda diferido a F2-04 con FK real. `style_version=1` y storage JSON vacío son defaults iniciales. Proyectos usan UTC canónica `YYYY-MM-DDTHH:mm:ss.sssZ`; el repositorio normaliza la fecha de contexto a ese formato. Las fechas de `user` quedan bajo el futuro adaptador Better Auth. Alcance y V01 pendiente: [ADR](adr/0001-local-d1-foundation.md).
+## Implementación F6
+
+F6-04: migraciones aditivas 0145–0147, `youtube_packages` con FK render/proyecto, versión única por render y triggers contra UPDATE/DELETE. `package_json` congela metadata revisada, manifestId/hash y checksum de salida; `content_hash` identifica ese contenido. Recibos idempotentes y revisión CAS evitan duplicación/sobrescritura. El estado COMPLETED se reconcilia con render/paquete del manifest activo vigente, conservando exportación de históricos. [ADR 0015](adr/0015-render-export-youtube.md).
+
+Migraciones aditivas 0133–0144: render_manifests, active_manifest_id, renders, qa_reports y vistas current_render_manifests/render_ready_manifests. Snapshots, findings e identidad de renders son inmutables; triggers impiden borrar historial. FK compuestas mantienen manifest/render/informe dentro del mismo proyecto. Datos operativos (estado, revisión y aprobación) se actualizan mediante CAS. No se altera el contenido de versiones previas.
+
+Los renders conservan manifest_json y hash exactos, job, checksum y technical_json; assets LOCAL_ONLY y asset_locations identifican el equipo productor sin almacenar paths. Informes PRE_RENDER/FINAL registran hallazgos y revisión humana/técnica. Jobs de corrección incorporan qaReportId/findingId/round en payload servidor; límite atómico de dos por manifest. Recibos de comandos evitan publicación o corrección duplicada. [ADR 0012](adr/0012-render-manifests.md), [0013](adr/0013-local-render-runner.md) y [0014](adr/0014-snapshot-qa.md).
+
+## Implementación F5
+
+Migraciones aditivas 0118–0132: asset_imports con identidad/checksum/estado/inspección, local_agents, agent_pairings, agent_commands, asset_locations y voice_segments. No sustituyen ni eliminan tablas/versiones existentes. El original de importación se conserva en su recibo; UPLOADED/VERIFIED y error de inspección son estado operativo.
+
+El token definitivo del agente solo se almacena como hash SHA-256; pairing y su recibo de entrega se cifran AES-GCM, un uso y TTL de cinco minutos, purgados al consultar/heartbeat después de caducar. La configuración local queda fuera de Git. No hay paths de disco en DTOs/D1: asset_locations registra identidad de equipo y asset, no una ruta enviada por el navegador.
+
+voice_segments tiene FK compuestas a escena/audio del mismo proyecto, orden único, límites de tiempos y triggers de inmutabilidad. Cada candidata posee sus segmentos; la activa anterior conserva los suyos. Campo de input opcional y DTO con array vacío por defecto mantienen compatibilidad de versiones F2/F4. TIMING incluye segmentos; campos informativos de revisión de voz no cambian por sí solos el hash visual. [ADR 0007–0011](adr/0007-private-media-import.md).

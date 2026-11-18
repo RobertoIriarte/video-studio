@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { assetInputSchema, assetSchema, researchInputSchema, researchVersionSchema, scriptInputSchema, scriptVersionSchema, sceneInputSchema, sceneSchema, sceneVersionInputSchema, sceneVersionSchema, uuidSchema, revisionSchema, paginationQuerySchema } from '@video-studio/contracts';
+import { assetInputSchema, assetSchema, researchInputSchema, researchVersionSchema, scriptInputSchema, scriptVersionSchema, sceneInputSchema, sceneSchema, sceneVersionInputSchema, sceneVersionSchema, uuidSchema, revisionSchema, paginationQuerySchema, voiceSegmentsSchema } from '@video-studio/contracts';
+import type { SceneVersionInput } from '@video-studio/contracts';
 import type { Database, Statement } from './connection.js';
 import { RepositoryDataError } from './repositories.js';
 
@@ -10,6 +11,9 @@ function decode<T>(read: () => T): T { try { return read(); } catch { throw new 
 export async function catalogHash(value: unknown): Promise<string> {
   const stable = (v: unknown): unknown => Array.isArray(v) ? v.map(stable) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0).map(([k, child]) => [k, stable(child)])) : v;
   return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(stable(value))))), (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+export function voiceStatements(db: Database, project: string, versionId: string, input: SceneVersionInput, gate = { sql: '1=1', values: [] as unknown[] }, uuid: () => string = () => crypto.randomUUID()) {
+  return (input.voiceSegments ?? []).map((s) => db.prepare(`INSERT INTO voice_segments SELECT ?,?,?,?,?,?,?,?,? WHERE ${gate.sql}`).bind(uuid(), project, versionId, s.audioAssetId, s.segmentIndex, s.text, s.startMs, s.endMs, JSON.stringify(s.alignment), ...gate.values));
 }
 type Row = Record<string, unknown>;
 const version = (row: Row) => ({ id: row.id, projectId: row.project_id, versionNo: row.version_no, status: row.status, contentHash: row.content_hash ?? row.hash, createdAt: row.created_at });
@@ -46,11 +50,13 @@ export class CatalogRepository {
   }
   async getSceneVersion(owner: string, project: string, id: string) {
     const row = await this.ownedRow('scene_versions', owner, project, id); if (!row) return null;
-    const [shots, links] = await Promise.all([
+    const [shots, links, segments] = await Promise.all([
       this.db.prepare('SELECT * FROM shots WHERE scene_version_id=? ORDER BY order_index,id').bind(id).all<Row>(),
       this.db.prepare('SELECT * FROM asset_links WHERE scene_version_id=? ORDER BY id').bind(id).all<Row>(),
+      this.db.prepare('SELECT * FROM voice_segments WHERE scene_version_id=? ORDER BY segment_index').bind(id).all<Row>(),
     ]);
     return decode(() => sceneVersionSchema.parse({ ...version(row), sceneId: row.scene_id, scriptVersionId: row.script_version_id, parentVersionId: row.parent_version_id,
+      voiceSegments: voiceSegmentsSchema.parse(segments.results.map((s) => ({ audioAssetId: s.audio_asset_id, segmentIndex: s.segment_index, text: s.text, startMs: s.start_ms, endMs: s.end_ms, alignment: json(s.alignment_json) }))),
       narration: row.narration, direction: json(row.direction_json), durationMs: row.duration_ms, generationScope: row.generation_scope,
       shots: shots.results.map((s) => ({ id: s.id, orderIndex: s.order_index, durationMs: s.duration_ms, type: s.type, prompt: s.prompt, camera: json(s.camera_json), transition: json(s.transition_json), assetId: s.asset_id })),
       assetLinks: links.results.map((l) => ({ id: l.id, assetId: l.asset_id, role: l.role, offsetMs: l.offset_ms, trimStartMs: l.trim_start_ms, trimEndMs: l.trim_end_ms })),
@@ -97,15 +103,25 @@ export class CatalogRepository {
       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'MISSING',?)`).bind(id, project, owner, input.type, input.mime, input.bytes, input.checksum, input.durationMs, input.width, input.height, input.origin, JSON.stringify(input.license), input.prompt, new Date().toISOString()).run();
     return (await this.getAsset(owner, project, id))!;
   }
-  async createSceneVersion(owner: string, project: string, scene: string, raw: unknown) {
+  async validateSceneVersion(owner: string, project: string, scene: string, raw: unknown) {
     await this.scope(owner, project); if (!await this.getScene(owner, project, scene)) throw new CatalogNotFound();
     const input = sceneVersionInputSchema.parse(raw); const script = await this.getScript(owner, project, input.scriptVersionId);
     if (!script) throw new CatalogNotFound(); if (['INVALIDATED', 'SUPERSEDED'].includes(script.status)) throw new CatalogConflict();
     if (input.parentVersionId) { const parent = await this.getSceneVersion(owner, project, input.parentVersionId); if (!parent || parent.sceneId !== scene) throw new CatalogNotFound(); }
-    const ids = [...new Set([...input.shots.flatMap((s) => s.assetId ? [s.assetId] : []), ...input.assetLinks.map((l) => l.assetId)])];
+    const refs: string[] = []; const frames: string[] = [];
+    const bible = input.direction.visualBible;
+    if (bible && typeof bible === 'object' && !Array.isArray(bible) && 'referenceAssetIds' in bible) refs.push(...z.array(uuidSchema).max(16).parse(bible.referenceAssetIds));
+    if (Array.isArray(input.direction.scenes)) for (const scenePlan of input.direction.scenes) {
+      if (scenePlan && typeof scenePlan === 'object' && !Array.isArray(scenePlan) && Array.isArray(scenePlan.shotPlans)) for (const shot of scenePlan.shotPlans) {
+        if (shot && typeof shot === 'object' && !Array.isArray(shot)) { if ('refs' in shot) refs.push(...z.array(uuidSchema).max(16).parse(shot.refs)); for (const frame of [shot.startFrame, shot.endFrame]) if (frame !== undefined && frame !== null) { refs.push(uuidSchema.parse(frame)); frames.push(uuidSchema.parse(frame)); } }
+      }
+    }
+    const ids = [...new Set([...input.shots.flatMap((s) => s.assetId ? [s.assetId] : []), ...input.assetLinks.map((l) => l.assetId), ...refs])];
+    z.array(uuidSchema).max(64).parse(ids); // Bounded por los parámetros SQL de D1, antes de consultar.
     const assets = ids.length ? (await this.db.prepare(`SELECT id,type,duration_ms FROM assets WHERE project_id=? AND id IN (${ids.map(() => '?').join(',')})`)
       .bind(project, ...ids).all<{ id: string; type: string; duration_ms: number | null }>()).results : [];
     if (assets.length !== ids.length) throw new CatalogNotFound();
+    if (refs.some((id) => assets.find((a) => a.id === id)?.type === 'AUDIO') || frames.some((id) => assets.find((a) => a.id === id)?.type !== 'IMAGE')) throw new CatalogConflict();
     for (const shot of input.shots) {
       const asset = assets.find((a) => a.id === shot.assetId);
       if (asset && asset.type !== (shot.type === 'VIDEO' ? 'VIDEO' : 'IMAGE')) throw new CatalogConflict();
@@ -114,6 +130,14 @@ export class CatalogRepository {
       const asset = assets.find((a) => a.id === link.assetId)!;
       if ((link.role === 'VISUAL' ? asset.type === 'AUDIO' : asset.type !== 'AUDIO') || link.offsetMs >= input.durationMs || (asset.duration_ms !== null && (link.trimStartMs >= asset.duration_ms || (link.trimEndMs !== null && link.trimEndMs > asset.duration_ms)))) throw new CatalogConflict();
     }
+    if (input.voiceSegments?.length) {
+      const voice = input.assetLinks.filter((l) => l.role === 'VOICE');
+      if (voice.length !== 1 || voice[0]!.offsetMs !== 0 || voice[0]!.trimStartMs !== 0 || assets.find((a) => a.id === voice[0]!.assetId)?.duration_ms !== input.durationMs) throw new CatalogConflict();
+    }
+    return input;
+  }
+  async createSceneVersion(owner: string, project: string, scene: string, raw: unknown) {
+    const input = await this.validateSceneVersion(owner, project, scene, raw);
     const id = crypto.randomUUID();
     const statements = [this.db.prepare(`INSERT INTO scene_versions (id,project_id,scene_id,script_version_id,parent_version_id,version_no,narration,direction_json,duration_ms,generation_scope,status,hash,created_at)
       SELECT ?,?,?,?,?,COALESCE(MAX(version_no),0)+1,?,?,?,?,'DRAFT',?,? FROM scene_versions WHERE scene_id=?`)
@@ -122,6 +146,7 @@ export class CatalogRepository {
       .bind(crypto.randomUUID(), project, id, shot.orderIndex, shot.durationMs, shot.type, shot.prompt, JSON.stringify(shot.camera), JSON.stringify(shot.transition), shot.assetId));
     for (const link of input.assetLinks) statements.push(this.db.prepare('INSERT INTO asset_links VALUES (?,?,?,?,?,?,?,?)')
       .bind(crypto.randomUUID(), project, id, link.assetId, link.role, link.offsetMs, link.trimStartMs, link.trimEndMs));
+    statements.push(...voiceStatements(this.db, project, id, input));
     statements.push(this.db.prepare("UPDATE scene_versions SET status='CANDIDATE' WHERE id=?").bind(id));
     await this.db.batch(statements); return (await this.getSceneVersion(owner, project, id))!;
   }
@@ -138,7 +163,7 @@ export class CatalogRepository {
     const scope = await this.scope(owner, project); revisionSchema.parse(expectedRevision);
     const candidate = await this.getScript(owner, project, id); if (!candidate) throw new CatalogNotFound();
     if (scope.revision !== expectedRevision || candidate.status !== 'CANDIDATE') throw new CatalogConflict();
-    // F4 implementará invalidación de derivados. Antes de eso no cambiar un guion con escenas activas.
+    // Primitiva interna conservadora. La activación web con invalidación usa ContentRepository/ProductionRepository.
     const token = crypto.randomUUID();
     const statements = [this.db.prepare(`UPDATE projects SET revision=revision+1,mutation_token=? WHERE id=? AND owner_id=? AND revision=? AND archived_at IS NULL
       AND NOT EXISTS(SELECT 1 FROM scenes WHERE project_id=? AND active_version_id IS NOT NULL)

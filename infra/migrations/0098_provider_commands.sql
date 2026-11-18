@@ -1,0 +1,1 @@
+CREATE TABLE provider_commands (owner_id TEXT NOT NULL REFERENCES user(id) ON DELETE RESTRICT,operation_id TEXT NOT NULL,payload_hash TEXT NOT NULL,response_json TEXT NOT NULL CHECK(json_valid(response_json)),PRIMARY KEY(owner_id,operation_id));

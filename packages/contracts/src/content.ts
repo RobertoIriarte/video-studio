@@ -1,0 +1,20 @@
+import { z } from 'zod';
+import { paginatedResponseSchema, revisionSchema, uuidSchema } from './common.js';
+import { researchVersionSchema, scriptVersionSchema, sceneSchema, sceneVersionSchema, sceneVersionInputSchema } from './catalog.js';
+import { researchOutputSchema, scriptOutputSchema } from './agents.js';
+import { jobDtoSchema } from './jobs.js';
+
+export const contentMutationSchema = z.strictObject({ versionId: uuidSchema, revision: revisionSchema });
+export const researchSaveSchema = z.strictObject({ expectedRevision: revisionSchema, baseVersionId: uuidSchema.nullable(), data: researchOutputSchema });
+export const scriptSaveSchema = z.strictObject({ expectedRevision: revisionSchema, baseVersionId: uuidSchema.nullable(), researchVersionId: uuidSchema.nullable(), data: scriptOutputSchema });
+export const sceneSaveSchema = z.strictObject({ expectedRevision: revisionSchema, baseVersionId: uuidSchema, input: sceneVersionInputSchema });
+export const contentActivateSchema = z.strictObject({ expectedRevision: revisionSchema, acknowledgeImpact: z.literal(true) });
+export const researchListSchema = paginatedResponseSchema(researchVersionSchema).extend({ revision: revisionSchema });
+export const scriptListSchema = paginatedResponseSchema(scriptVersionSchema).extend({ revision: revisionSchema, activeVersionId: uuidSchema.nullable() });
+export const sceneSummarySchema = sceneSchema.extend({ title: z.string(), latestVersionId: uuidSchema.nullable(), durationMs: z.int().nonnegative(), startMs: z.int().nonnegative(), shotCount: z.int().nonnegative(), status: z.string() });
+export const scenesListSchema = paginatedResponseSchema(sceneSummarySchema).extend({ revision: revisionSchema });
+export const sceneDetailSchema = z.strictObject({ scene: sceneSchema, revision: revisionSchema, versions: z.array(sceneVersionSchema).max(25), nextCursor: z.string().nullable() });
+export const regenerationScopeSchema = sceneVersionInputSchema.shape.generationScope;
+export const regenerateSchema = z.strictObject({ expectedRevision: revisionSchema, baseVersionId: uuidSchema, scope: regenerationScopeSchema, instruction: z.string().trim().max(4000).default(''), providerId: uuidSchema.nullable().default(null) });
+export const regenerationImpactSchema = z.strictObject({ scope: regenerationScopeSchema, components: z.array(z.string()), jobKinds: z.array(z.string()), preserves: z.array(z.string()), requiresResource: z.boolean(), message: z.string() });
+export const regenerationResponseSchema = jobDtoSchema;

@@ -1,0 +1,1 @@
+CREATE TABLE content_changes (id TEXT PRIMARY KEY NOT NULL, project_id TEXT NOT NULL, owner_id TEXT NOT NULL, version_id TEXT NOT NULL, action TEXT NOT NULL CHECK(action IN('CONTENT_CREATED','CONTENT_ACTIVATED','REGEN_REQUESTED')), created_at TEXT NOT NULL, FOREIGN KEY(project_id,owner_id) REFERENCES projects(id,owner_id) ON DELETE RESTRICT);

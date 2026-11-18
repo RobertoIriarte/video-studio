@@ -8,12 +8,15 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc --noEmit -p tsconfig.json && node ../../infra/scripts/build-agent.mjs"
   },
   "dependencies": {
+    "@remotion/bundler": "4.0.544",
+    "@remotion/renderer": "4.0.544",
     "@video-studio/contracts": "workspace:*",
     "@video-studio/domain": "workspace:*",
     "@video-studio/providers": "workspace:*",
-    "@video-studio/render": "workspace:*"
+    "@video-studio/render": "workspace:*",
+    "zod": "4.6.7"
   }
 }

@@ -1,2 +1,2 @@
-// Scaffolding F1-01: render aún no tiene implementación funcional.
-export {};
+export { VideoComposition } from './composition.js';
+export type { CompositionProps } from './composition.js';

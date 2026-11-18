@@ -20,3 +20,7 @@ Filtrar enabled, capacidad real (text-image, image-video, text-video, first/last
 
 ## Alta de adaptador concreto
 1. Leer docs oficiales, confirmar autorización, capacidades, costo, autenticación, derechos, rate limit y async/idempotencia. Guardar ADR con fecha/fuente. 2. Implementar adapter y pruebas de contrato usando mocks HTTP y fixtures, sanitización de errores. 3. Registrar capability flags/probe; no marcar disponible si credenciales o cuota faltan. 4. Ensayo real pequeño solo con aprobación de créditos. 5. Verificar import, metadata, ledger y fallback. Si falla integración, estado NOT_CONFIGURED o MANUAL_ONLY; nunca éxito simulado en producción.
+
+## Resultado de F5-05 (2026-11-18)
+
+La revisión vigente queda en [ADR 0011](adr/0011-provider-integration-review.md). Las vías de texto/imagen/video/voz/stock son MANUAL_ONLY; Proveedores muestra formatos, razones y fuentes públicas. No hay credenciales ni presupuesto API autorizados, y no se asumen beneficios de suscripción activos. F5-03 conecta prompt/referencias e importación recuperable; F5-04 conecta audio y tiempos revisables. MockVoiceAdapter solo produce un tono de fixture con speech=false. La existencia de API oficial no equivale a integración probada en este proyecto.

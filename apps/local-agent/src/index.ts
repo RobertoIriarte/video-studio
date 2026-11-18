@@ -1,2 +1,3 @@
-// Scaffolding F1-01: local-agent aún no tiene implementación funcional.
-export {};
+export * from './client.js';
+export * from './probe.js';
+export * from './cache.js';

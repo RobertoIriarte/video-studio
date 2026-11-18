@@ -1,0 +1,1 @@
+CREATE TABLE job_commands (project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE RESTRICT,operation_id TEXT NOT NULL,payload_hash TEXT NOT NULL,response_json TEXT NOT NULL CHECK(json_valid(response_json)),PRIMARY KEY(project_id,operation_id));

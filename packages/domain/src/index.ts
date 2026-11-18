@@ -1,4 +1,5 @@
 /** Suma duraciones positivas en milisegundos, sin reloj, I/O ni estado global. */
+export * from './orchestration.js';
 export function sumDurationMs(durations: readonly number[]): number {
   let total = 0;
   for (const duration of durations) {
@@ -12,3 +13,9 @@ export function sumDurationMs(durations: readonly number[]): number {
   }
   return total;
 }
+export * from './direction.js';
+export * from './invalidation.js';
+export * from './voice.js';
+export * from './manifest.js';
+export * from './qa.js';
+export * from './youtube.js';

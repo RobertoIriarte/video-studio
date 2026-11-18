@@ -1,0 +1,2 @@
+CREATE TRIGGER job_provider_insert_scope BEFORE INSERT ON jobs WHEN NEW.selected_provider_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM provider_configs c JOIN projects p ON p.owner_id=c.owner_id WHERE p.id=NEW.project_id AND c.id=NEW.selected_provider_id)
+BEGIN SELECT RAISE(ABORT,'JOB_PROVIDER_SCOPE'); END;

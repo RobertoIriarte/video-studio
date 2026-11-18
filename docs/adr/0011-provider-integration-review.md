@@ -1,0 +1,17 @@
+# ADR 0011 — Revisión de integraciones disponibles
+
+Estado: F5-05 completada como **MANUAL_ONLY**, opción prevista por el roadmap. Fecha de revisión: 2026-11-18. No se cambian arquitectura ni política de gasto.
+
+No se aportaron credenciales API, organización de facturación, presupuesto de ensayo ni proveedor de voz seleccionado. Se implementaron las vías manuales y su catálogo de disponibilidad; no se implementa un cliente HTTP ficticio ni se presenta un mock como integración real. El catálogo requiere acción del propietario, declara costo desconocido y conserva la vía de importación. No se accedió a cuentas privadas para determinar beneficios o saldos.
+
+| Capacidad | Evidencia oficial y resultado | Vía operativa actual |
+|---|---|---|
+| Texto | ChatGPT y API mantienen facturación separada. La documentación actual contempla créditos API para determinadas suscripciones Pro/Business, sujetos a elegibilidad y activación en una organización propia. No se supone que estén activados para este propietario. [Facturación](https://help.openai.com/en/articles/9039756-managing-billing-for-chatgpt-and-the-api-platform), [beneficio opcional](https://developers.openai.com/api/docs/guides/chatgpt-api-credits) | Prompt/referencias, JSON validado, fuentes trazables y checkpoint |
+| Imagen | Hay endpoints oficiales de generación/edición, con modelos y permisos propios; la existencia de la API no acredita una configuración autorizada en este proyecto. [Guía oficial](https://developers.openai.com/api/docs/guides/image-generation) | ChatGPT por acción del usuario; importar PNG/JPEG/WebP con procedencia |
+| Video | Flow consume créditos y sus capacidades dependen de plan/modelo; límites y modelos cambian. La documentación de Gemini API consultada redirige a AI Studio y anuncia retirada de Veo 3.1 Preview el 2026-10-22, ofreciendo otras vías/modelos. No fijar endpoints preview antiguos ni tratar sesiones Flow como claves API. [Flow/créditos](https://support.google.com/flow/answer/16526234?hl=en), [Gemini video](https://aistudio.google.com/docs/video) | Flow por acción del usuario; MP4 inspeccionado con FFprobe; validación de duración por toma |
+| Voz | API Speech oficial disponible con formatos de audio; selección, autorización y presupuesto siguen pendientes. No descargar un motor/modelo sin decisión. [TTS](https://developers.openai.com/api/docs/guides/text-to-speech) | Audio propio/autorizado, duración real, segmentos manuales o estimados revisables; tono mock solo fixtures |
+| Stock | No hay biblioteca/proveedor contratado o autorizado para integración automática en este alcance | Archivo explícito y licencia; sin scraping ni descarga por URL arbitraria |
+
+La UI informa de estas limitaciones antes de generar; AUTO puede detenerse en WAITING_MANUAL. No hay tarifas incorporadas como promesa ni cuota ilimitada. Contratos conservan deshabilitada la configuración PAID_API; ledger y política de F3 siguen vigentes. Las pruebas de contrato y recuperación no realizan red externa ni consumen créditos. No se hizo ensayo real.
+
+Para activar un adaptador futuro: aprobar proveedor/alcance y presupuesto, confirmar cuenta/credencial fuera del repo, verificar documentación vigente/modelo/formatos/licencias y mecanismo idempotente, implementar cliente y pruebas HTTP con fixtures, integrar reserva/reconciliación y realizar un ensayo pequeño autorizado. Un beneficio de créditos disponible tampoco autoriza su consumo por sí solo. Esta limitación manual no bloquea F6, que aún requiere autorización del propietario.

@@ -9,6 +9,16 @@ import { z } from 'zod';
 import { bodyLimit } from 'hono/body-limit';
 import { registerAuth } from './auth/routes.js';
 import { registerProjects } from './projects.js';
+import { registerOrchestration } from './orchestration.js';
+import { registerContent } from './content-routes.js';
+import { registerMedia } from './media-routes.js';
+import type { MediaBucket } from './media-storage.js';
+import { registerYoutube } from './youtube-routes.js';
+import { registerQa } from './qa-routes.js';
+import { registerRender } from './render-routes.js';
+import { registerManual } from './manual.js';
+import { registerAgents } from './agent-routes.js';
+import type { AgentIdentity } from '@video-studio/contracts';
 import type { Database } from './db/connection.js';
 
 // Esta entrega solo configura ejecución local; no hay fallback a producción.
@@ -17,11 +27,11 @@ const configSchema = z.object({
   APP_VERSION: versionResponseSchema.shape.version,
 });
 
-export type ApiBindings = { APP_ENV: string; APP_VERSION: string; DB?: Database; APP_ORIGIN?: string; AUTH_SECRET?: string; AUTH_BOOTSTRAP_TOKEN?: string };
+export type ApiBindings = { APP_ENV: string; APP_VERSION: string; DB?: Database; MEDIA?: MediaBucket; APP_ORIGIN?: string; AUTH_SECRET?: string; AUTH_BOOTSTRAP_TOKEN?: string };
 
 export type ApiEnv = {
   Bindings: ApiBindings;
-  Variables: { requestId: string; config: z.infer<typeof configSchema>; user?: AuthUser };
+  Variables: { requestId: string; config: z.infer<typeof configSchema>; user?: AuthUser; agent?: AgentIdentity; binaryResponse?: boolean };
 };
 
 const jsonHeaders = { 'Content-Type': 'application/json; charset=UTF-8' };
@@ -51,7 +61,7 @@ export function createApp() {
     }
     c.set('config', config.data);
     await next();
-    c.header('Content-Type', 'application/json; charset=UTF-8');
+    if (!c.get('binaryResponse')) c.header('Content-Type', 'application/json; charset=UTF-8');
   });
 
   app.get('/api/v1/health', (c) => c.json(healthResponseSchema.parse({ status: 'ok' }), 200, jsonHeaders));
@@ -65,6 +75,14 @@ export function createApp() {
   }));
   registerAuth(app);
   registerProjects(app);
+  registerOrchestration(app);
+  registerContent(app);
+  registerMedia(app);
+  registerAgents(app);
+  registerManual(app);
+  registerRender(app);
+  registerQa(app);
+  registerYoutube(app);
 
   app.notFound((c) => c.json(errorBody(c.get('requestId'), 'NOT_FOUND', 'Recurso no encontrado.', false), 404, jsonHeaders));
   app.onError((_error, c) => {

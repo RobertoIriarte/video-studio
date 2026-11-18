@@ -1,0 +1,1 @@
+CREATE TABLE youtube_packages(id TEXT PRIMARY KEY NOT NULL,project_id TEXT NOT NULL,render_id TEXT NOT NULL,version_no INTEGER NOT NULL,content_hash TEXT NOT NULL,package_json TEXT NOT NULL CHECK(json_valid(package_json)),created_at TEXT NOT NULL,UNIQUE(render_id,version_no),FOREIGN KEY(render_id,project_id) REFERENCES renders(id,project_id) ON DELETE RESTRICT);

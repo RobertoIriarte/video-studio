@@ -1,0 +1,1 @@
+CREATE TRIGGER job_input_immutable BEFORE UPDATE OF id,project_id,scene_id,kind,execution_target,payload_json,input_refs_json,idempotency_key,input_hash,created_at ON jobs BEGIN SELECT RAISE(ABORT,'JOB_INPUT_IMMUTABLE'); END;

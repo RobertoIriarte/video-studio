@@ -1,0 +1,1 @@
+CREATE TABLE agent_commands (agent_id TEXT NOT NULL REFERENCES local_agents(id) ON DELETE RESTRICT,operation_id TEXT NOT NULL,request_hash TEXT NOT NULL,response_json TEXT CHECK(response_json IS NULL OR json_valid(response_json)),PRIMARY KEY(agent_id,operation_id));

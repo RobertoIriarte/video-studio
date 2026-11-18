@@ -1,3 +1,4 @@
+import { AgentStatus } from './agents';
 import { useEffect, useRef, useState } from 'react';
 import { ArrowDownUp, ArrowLeft, ArrowRight, BookOpen, Check, ChevronLeft, ChevronRight, Circle, Clapperboard, Clock3, Film, FolderOpen, Layers3, LayoutGrid, Library, LockKeyhole, Monitor, PanelLeftClose, PanelLeftOpen, Play, Plus, Search, Settings2, SlidersHorizontal, Sparkles, Unplug, WandSparkles, WifiOff } from 'lucide-react';
 import { Link, Navigate, NavLink, Outlet, Route, Routes, useLocation, useOutletContext, useParams, useSearchParams } from 'react-router-dom';
@@ -42,7 +43,7 @@ export function Shell({ identity, onLogout }: { identity?: string; onLogout?: ()
   const [online, setOnline] = useState(navigator.onLine);
   const location = useLocation();
   const content = useRef<HTMLElement>(null);
-  const title = location.pathname === '/login' ? 'Acceso privado' : navigation.find((item) => location.pathname.startsWith(item.path))?.label ?? 'Página no encontrada';
+  const title = location.pathname === '/login' ? 'Acceso privado' : location.pathname.startsWith('/scenes/') ? 'Editor de escena' : navigation.find((item) => location.pathname.startsWith(item.path))?.label ?? 'Página no encontrada';
   useEffect(() => {
     const update = () => setOnline(navigator.onLine);
     window.addEventListener('online', update); window.addEventListener('offline', update);
@@ -62,7 +63,7 @@ export function Shell({ identity, onLogout }: { identity?: string; onLogout?: ()
       <nav aria-label="Navegación principal">{navigation.map((item) => <SidebarLink key={item.path} item={item} showCount={!privateMode} />)}</nav>
       <div className="sidebar-bottom"><div className="agent-card sidebar-label"><span className="agent-card-icon"><Monitor /></span><strong>Tu estudio, en local</strong><p>El agente de producción aún no está conectado.</p><Link to="/settings">Ver configuración<ArrowRight /></Link></div>{privateMode ? <div className="private-link"><span className="avatar">VS</span><span className="sidebar-label"><strong>{identity}</strong><small>Sesión privada</small></span></div> : <Link className="private-link" to="/login" aria-label="Acceso privado"><span className="avatar">VS</span><span className="sidebar-label"><strong>Espacio privado</strong><small>Vista de demostración</small></span><LockKeyhole className="sidebar-label" /></Link>}</div>
     </aside>
-    <div className="workspace"><header className="topbar"><div className="breadcrumbs"><Button variant="ghost" size="icon" className="collapse-button" aria-label={collapsed ? 'Expandir navegación' : 'Plegar navegación'} aria-expanded={!collapsed} onClick={() => setCollapsed(!collapsed)}>{collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}</Button><span>Espacio de trabajo</span><ChevronRight /><strong>{title}</strong></div><Link className="agent-status" to="/settings"><span className="connection-dot" />Agente sin conectar<ChevronRight /></Link>{privateMode && <Button variant="outline" onClick={onLogout}>Cerrar sesión</Button>}</header>
+    <div className="workspace"><header className="topbar"><div className="breadcrumbs"><Button variant="ghost" size="icon" className="collapse-button" aria-label={collapsed ? 'Expandir navegación' : 'Plegar navegación'} aria-expanded={!collapsed} onClick={() => setCollapsed(!collapsed)}>{collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}</Button><span>Espacio de trabajo</span><ChevronRight /><strong>{title}</strong></div><Link className="agent-status" to="/settings"><span className="connection-dot" />{privateMode ? <AgentStatus /> : 'Agente sin conectar'}<ChevronRight /></Link>{privateMode && <Button variant="outline" onClick={onLogout}>Cerrar sesión</Button>}</header>
       <div className="workspace-content">{!privateMode && <DemoStateControl />}{!online && <div role="alert" className="offline-banner"><WifiOff />{privateMode ? 'Sin conexión. Conserva tus cambios y reintenta el guardado al reconectar.' : 'Sin conexión. Puedes seguir explorando los datos de muestra; no se enviarán cambios.'}</div>}<main ref={content} id="main-content" tabIndex={-1}>{privateMode ? <Outlet /> : <ViewState><Outlet /></ViewState>}</main><footer className="workspace-footer"><span>VIDEO STUDIO</span><span>Un espacio para historias que importan.</span><span>{privateMode ? 'Espacio privado' : 'Demostración local'}</span></footer></div>
     </div>
   </div>;

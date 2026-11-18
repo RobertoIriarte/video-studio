@@ -1,0 +1,1 @@
+CREATE TRIGGER usage_identity_immutable BEFORE UPDATE OF id,owner_id,project_id,job_id,provider_id,event_key,request_hash,currency,reserved_micros,reserved_units,window_start,created_at ON usage_records BEGIN SELECT RAISE(ABORT,'USAGE_IDENTITY_IMMUTABLE'); END;

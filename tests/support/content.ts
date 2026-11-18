@@ -1,0 +1,4 @@
+import type { ResearchOutput, ScriptOutput } from '@video-studio/contracts';
+export const contentMetadata = { schemaVersion: 1 as const, promptVersion: 'fixture-v1', model: 'synthetic', simulated: true, language: 'es' };
+export const researchData = (): ResearchOutput => ({ metadata: { ...contentMetadata }, sources: [{ key: 'own', title: 'Fuente propia', url: 'https://example.invalid/fuente', acquiredAt: '2026-01-01T00:00:00.000Z', notes: 'Sin acceso externo.', provenance: 'MANUAL', accessStatus: 'UNKNOWN' }], claims: [], outlineSuggestions: ['Introducción'], uncertainties: ['Verificar manualmente.'] });
+export const scriptData = (): ScriptOutput => ({ metadata: { ...contentMetadata }, title: 'Guion sintético', hook: 'Apertura', sections: [{ stableKey: 'scene-one', title: 'Inicio', narration: 'Narración sintética.', claimIds: [], targetDurationMs: 60000 }], closing: 'Cierre', approximateWords: 2, riskNotes: [] });

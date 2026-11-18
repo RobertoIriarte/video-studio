@@ -1,0 +1,1 @@
+CREATE TRIGGER qa_immutable BEFORE UPDATE OF id,project_id,manifest_id,manifest_hash,render_id,kind,version_no,findings_json,created_at ON qa_reports BEGIN SELECT RAISE(ABORT,'IMMUTABLE_QA_REPORT'); END;

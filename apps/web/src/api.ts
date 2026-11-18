@@ -11,6 +11,7 @@ export async function api<T>(path: string, schema: z.ZodType<T>, init: RequestIn
   } catch { throw new ApiFailure(0, 'Sin conexión. Conserva tus cambios y vuelve a intentar.'); }
   const data: unknown = await response.json().catch(() => null);
   if (!response.ok) {
+    if (response.status === 401 && !path.startsWith('/auth/sign-in')) window.dispatchEvent(new Event('studio:session-expired'));
     const parsed = apiErrorSchema.safeParse(data && typeof data === 'object' && 'error' in data ? { error: data.error } : data);
     const issues = z.array(validationIssueSchema).safeParse(parsed.success ? parsed.data.error.details?.issues : null);
     throw new ApiFailure(response.status, parsed.success ? parsed.data.error.message : 'No se pudo completar la operación.',

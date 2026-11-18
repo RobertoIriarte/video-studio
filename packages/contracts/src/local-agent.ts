@@ -1,0 +1,25 @@
+import { z } from 'zod';
+import { utcTimestampSchema, uuidSchema, revisionSchema } from './common.js';
+import { jobDtoSchema, jobInputRefSchema, jobPayloadSchema, jobProgressSchema, jobErrorCodeSchema } from './jobs.js';
+import { assetInputSchema } from './catalog.js';
+import { mediaMetadataSchema, importDtoSchema } from './media.js';
+
+export const agentCapabilitiesSchema = z.strictObject({ ffprobe: z.boolean(), localImport: z.boolean(), alignment: z.boolean().default(false), render: z.boolean().optional() });
+export const agentDtoSchema = z.strictObject({ id: uuidSchema, name: z.string().min(1).max(80), capabilities: agentCapabilitiesSchema, diskFreeBytes: z.int().nonnegative(), lastSeenAt: utcTimestampSchema.nullable(), status: z.enum(['ONLINE', 'OFFLINE', 'REVOKED']), revision: revisionSchema, probeVersion: z.string().max(200).nullable() });
+export const agentListSchema = z.strictObject({ items: z.array(agentDtoSchema).max(25) });
+export const pairingCreateSchema = z.strictObject({ label: z.string().trim().min(1).max(80) });
+export const pairingDtoSchema = z.strictObject({ id: uuidSchema, code: z.string().regex(/^[a-f0-9]{64}$/), expiresAt: utcTimestampSchema });
+export const agentPairSchema = z.strictObject({ code: pairingDtoSchema.shape.code, name: z.string().trim().min(1).max(80), capabilities: agentCapabilitiesSchema });
+export const agentTokenSchema = z.strictObject({ agentId: uuidSchema, token: z.string().regex(/^[a-f0-9]{64}$/) });
+export const agentHeartbeatSchema = z.strictObject({ capabilities: agentCapabilitiesSchema, diskFreeBytes: z.int().nonnegative(), activeJobIds: z.array(uuidSchema).max(1), probeVersion: z.string().min(1).max(200).nullable() });
+export const agentClaimSchema = z.strictObject({ availableSlots: z.literal(1) });
+export const agentLeaseSchema = z.strictObject({ job: jobDtoSchema, leaseToken: uuidSchema, leaseUntil: utcTimestampSchema, attemptId: uuidSchema, payload: jobPayloadSchema, inputRefs: z.array(jobInputRefSchema).max(8) });
+export const agentClaimResponseSchema = z.strictObject({ lease: agentLeaseSchema.nullable() });
+export const agentJobHeartbeatSchema = z.strictObject({ leaseToken: uuidSchema, progress: jobProgressSchema });
+export const agentJobCompleteSchema = z.strictObject({ leaseToken: uuidSchema, output: jobInputRefSchema.nullable() });
+export const agentJobFailSchema = z.strictObject({ leaseToken: uuidSchema, code: jobErrorCodeSchema });
+export const localAssetRegisterSchema = z.strictObject({ projectId: uuidSchema, assetId: uuidSchema, asset: assetInputSchema });
+export const importInspectionSchema = z.strictObject({ metadata: mediaMetadataSchema, probeVersion: z.string().min(1).max(200) });
+export const pendingInspectionsSchema = z.strictObject({ items: z.array(importDtoSchema).max(1) });
+export type AgentIdentity = { id: string; ownerId: string };
+export type AgentCapabilities = z.infer<typeof agentCapabilitiesSchema>;

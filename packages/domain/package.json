@@ -8,6 +8,9 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@video-studio/contracts": "workspace:*"
   }
 }

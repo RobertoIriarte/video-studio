@@ -1,0 +1,12 @@
+import { z } from 'zod';
+import { uuidSchema, revisionSchema, utcTimestampSchema } from './common.js';
+import { contentHashSchema } from './catalog.js';
+import { jobDtoSchema } from './jobs.js';
+export const qaFindingSchema=z.strictObject({id:z.string().min(1).max(220),code:z.enum(['MISSING_VOICE','MISSING_SEGMENTS','ESTIMATED_TIMING','NARRATION_REVIEW','VISUAL_REVIEW','LICENSE_REQUIRED','RESOURCE_MISSING','LOW_RESOLUTION','NO_AUDIO','SOURCE_REVIEW','BLACK_FRAMES','EXCESSIVE_SILENCE','OUTPUT_PROFILE']),severity:z.enum(['BLOCKER','WARN','INFO']),sceneId:uuidSchema.nullable(),assetId:uuidSchema.nullable(),component:z.enum(['NARRATION','VISUAL','VOICE','TIMING','MUSIC','EDIT','OUTPUT']),message:z.string().max(700),suggestedScope:z.enum(['VISUAL','NARRATION','VOICE','MUSIC','AMBIENCE','EDIT']).nullable()});
+export const qaReportSchema=z.strictObject({id:uuidSchema,projectId:uuidSchema,manifestId:uuidSchema,manifestHash:contentHashSchema,renderId:uuidSchema.nullable(),kind:z.enum(['PRE_RENDER','FINAL']),versionNo:revisionSchema,status:z.enum(['PENDING','BLOCKED','APPROVED']),revision:revisionSchema,findings:z.array(qaFindingSchema).max(2000),createdAt:utcTimestampSchema,reviewedAt:utcTimestampSchema.nullable()});
+export const qaViewSchema=z.strictObject({revision:revisionSchema,current:z.boolean(),items:z.array(qaReportSchema).max(25),nextCursor:z.string().nullable()});
+export const qaRunSchema=z.strictObject({expectedRevision:revisionSchema,manifestHash:contentHashSchema});
+export const qaApproveSchema=z.strictObject({expectedRevision:revisionSchema,manifestHash:contentHashSchema,acknowledgeEditorialReview:z.literal(true)});
+export const qaRepairSchema=z.strictObject({expectedRevision:revisionSchema,findingId:qaFindingSchema.shape.id});
+export const qaRepairResultSchema=z.strictObject({job:jobDtoSchema,round:z.int().min(1).max(2)});
+export type QaFinding=z.infer<typeof qaFindingSchema>;

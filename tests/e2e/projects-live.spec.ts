@@ -52,7 +52,7 @@ test('wizard real: tres entradas, recarga, revisión, protección de cambios y a
     await expect(page.getByText('es · Audiencia persistida · 15 min', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Confirmar y guardar proyecto' }).click();
     await expect(page.getByRole('heading', { name: `Historia ${type}`, exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Iniciar producción' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Iniciar producción', exact: true })).toBeEnabled();
     if (type === 'TOPIC') {
       await page.getByRole('link', { name: 'Continuar configuración' }).click();
       for (let step = 5; step > 1; step--) { await expect(page.getByRole('heading', { name: `Paso ${step} de 5` })).toBeVisible(); await page.getByRole('button', { name: 'Atrás', exact: true }).click(); }

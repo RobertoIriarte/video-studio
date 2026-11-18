@@ -1,0 +1,1 @@
+CREATE TRIGGER voice_segment_insert BEFORE INSERT ON voice_segments WHEN NOT EXISTS(SELECT 1 FROM scene_versions v WHERE v.id=NEW.scene_version_id AND v.project_id=NEW.project_id AND v.status='DRAFT') BEGIN SELECT RAISE(ABORT,'IMMUTABLE_VOICE_SEGMENT'); END;

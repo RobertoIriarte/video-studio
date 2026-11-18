@@ -1,0 +1,41 @@
+# F7 — validación integral local
+
+## F7-01
+
+Autorizada como siguiente tarea después de F6-04. Alcance: T23, recorrido AUTO simulado corto, sin créditos. Sin F7-02, despliegue, publicación en YouTube, commit/push ni cambio de arquitectura.
+
+### Implementación y límites
+
+`tests/auto-production.test.ts` arranca Worker/D1/R2 efímeros y crea propietario/proyecto por los endpoints reales. Configura únicamente el proveedor de texto mock mediante el permiso existente de fixtures y avanza el coordinador con llamadas acotadas, sin sleeps. Investigación, guion y dirección se producen en AUTO sin checkpoints ordinarios. PNG propio y MockVoiceAdapter (tono de 5 s, speech=false) se inspeccionan y registran a través de importLocalFile/cliente Node. El fixture representa al propietario al importar, revisar candidatas, activar montaje y aprobar QA/metadata, como exigen los contratos vigentes. Las vías manual-only siguen siendo manuales en el producto; esta prueba no declara autonomía de proveedores inexistentes.
+
+El agente obtiene claim, snapshot y recursos con bearer, envía heartbeat y publica el MP4 real con QA final. `executeRender` admite inyectar la función de render como dependencia opcional Node; por defecto sigue usando localRender. La prueba inyecta el mismo renderer real con development=true para identificar el ensayo sintético; no sustituye archivo, FFprobe, FFmpeg, Remotion ni validación. No se agregó flag público ni se modificaron DTO, autorización o política de producción. Reinicia el cliente desde configuración persistida temporal, obtiene paquete por API y exporta a carpeta nueva. Verifica perfil FHD, 150 frames/5 s, tolerancia AAC de un frame, manifest/script/checksum, COMPLETE.json, estado COMPLETED, ausencia de trabajos abiertos, tres reservas mock SETTLED a cero y ningún external_started.
+
+La red del cliente se restringe al origen del Worker efímero; los mocks no consultan proveedores. Los assets del renderer se sirven únicamente por el loopback autorizado existente. Secretos/config/media quedan en un directorio temporal propio fuera del repo; se valida prefijo y raíz antes del cleanup. No se modifica la configuración real del agente ni la D1 local persistida.
+
+### Evidencia
+
+Primera invocación no ejecutó casos por un import del workspace providers no declarado en la raíz. Se corrigió usando la referencia de fuente existente en otras pruebas, sin añadir dependencias. `pnpm test tests/auto-production.test.ts`: 1/1 pasó, sin skips, 72.66 s. Lint y typecheck pasaron. Cierre `pnpm test tests/auto-production.test.ts tests/agents.test.ts tests/local-agent.test.ts tests/renders.test.ts tests/youtube.test.ts`: 11/11 casos en cinco archivos, sin skips, 82.91 s. Incluye cliente reconstruido desde config persistida, cola sin trabajos abiertos y exactamente tres registros mock liquidados a cero. Lint, typecheck y build completos finales pasaron; advertencia conocida de bundle web ~945 kB sin cambios de UI.
+
+Prerrequisitos de entorno: FFmpeg/FFprobe 9.0.2 portable, Chromium Playwright existente, Node/pnpm fijados. Sin esos binarios el caso informa skip; no permite marcar T23 validado. No se afirma calidad editorial, sincronía fonética ni voz hablada. UI y fallos supervisados corresponden a F7-02, aún sin autorización.
+
+F7-01 DONE, sin bloqueos locales; diff revisado y `git diff --check` verde. No se ejecutó nuevamente la suite web de 35 E2E ni toda la suite general: no hubo cambios de UI/contratos y se ejecutaron regresiones de los servicios afectados. La evidencia anterior permanece en F6. No hay nuevas dependencias ni migraciones; la base persistida local conserva sus 147 migraciones. Servidor demo previo 5173 conservado. Siguiente tarea F7-02 requiere autorización.
+
+## F7-02
+
+Autorizada junto con F7-03. Se extrajo el escenario de F7-01 a `tests/support/production-scenario.ts`, conservando el recorrido AUTO y parametrizando modo/entrada. `supervised-production.test.ts` cubre guion propio y fuentes: checkpoints de guion/dirección, importación con tipo incorrecto rechazada, pausa con importación rechazada, reanudación, candidata visual localizada sin activación implícita, conservación de narración/voz/historial, QA, MP4 real de 5 s y exportación. Las compilaciones Remotion de estos fixtures usan directorios temporales separados para evitar competir sobre el bundle del agente.
+
+Primer intento detectó una expectativa de test incorrecta (pause devuelve 202); corregida sin cambiar API. Ambos casos supervisados pasaron 2/2 (144.87 s), sin skips. El caso AUTO refactorizado pasó en la primera ejecución conjunta. Tipos y lint verdes.
+
+El nuevo E2E `supervised.spec.ts` detectó pérdida real de foco al cerrar un diálogo con Escape. Se corrigió Dialog conservando/restaurando el elemento de origen cuando sigue conectado. Se mantuvo la aserción. La regresión de orquestación pasó 1/1; se ajustó además el test offline para esperar la carga del formulario antes de desconectar. Cierre E2E supervisado 1/1 pasó (45.9 s), con teclado/foco, pausa/rechazo, offline, respuesta perdida/replay, aprobación, axe y móvil. F7-02 DONE. No se añadieron contratos, dependencias, migraciones ni proveedores.
+
+## F7-03
+
+CLI Node backup/verify-backup/restore, contrato de inventario Zod, fingerprint de migraciones, paths estrictos, snapshot offline D1/R2/media y destinos nuevos fuera del repo. BACKUP.json y RESTORE_COMPLETE.json se escriben al final. No se restaura config/secretos sueltos, no se sobrescribe ni se inician agentes/cron. Runbook OPERATIONS y ADR 0016 documentan consistencia offline, privacidad, limites y recuperacion. Sin dependencias ni migraciones nuevas.
+
+T22 crea un proyecto AUTO con MP4 real y agrega PNG remoto en R2. Cierra Worker, copia/restaura, compara conteos de tablas de aplicacion, inicia sesion bajo otro secreto de fixture, recupera paquete/snapshot y recurso R2 via API, verifica originales y renderiza de nuevo con checksum identico. El primer intento consultaba una tabla interna protegida y D1 rechazo SQLITE_AUTH; se excluyeron del inventario SQL las tablas de runtime, manteniendo todas las tablas de aplicacion. La copia fisica conserva todos los archivos. T22 paso 1/1 (108.67 s); tras usar layout Wrangler state/v3, focales backup/T22 4/4 (140.07 s), sin skips. Pruebas de seguridad ampliadas: 4/4 (3.39 s), incluyen R2 sin inicializar y extras fuera de categorias. No se respalda ni restaura el estado real del propietario en estas pruebas.
+
+Build completo, typecheck y lint pasaron; build demo actualizado. E2E completos 36/36 (1.5 min), incluyendo la correccion real de foco. Cierre: regresion no nativa 224/224 en 33 archivos (549.79 s), mediante `pnpm run test --exclude tests/native-render.test.ts --exclude tests/auto-production.test.ts --exclude tests/supervised-production.test.ts --exclude tests/backup-restore.test.ts`. Los escenarios nativos excluidos se validaron aparte como se detalla arriba; la suite nativa F6 de cuatro casos no se repitio porque no cambio el renderer. `pnpm test --exclude` fue rechazado por pnpm antes de ejecutar pruebas; se uso `pnpm run test` sin alterar casos. No se afirma validacion cloud/CI alojada/Linux ni calidad editorial de un piloto real.
+
+Cierre final de hardening: backup 4/4 paso nuevamente (2.80 s) tras comprobar extras fuera de categorias, R2 vacio y worker.env rechazado. Build completo paso; despues del ultimo ajuste de inventario se recompilo el agente y se repitieron types/lint, todos verdes. CLI compilado probado en fixture temporal independiente: backup, verify-backup y restore pasaron (tres archivos), sin lectura de configuracion real. El placeholder SQLite de esa prueba de CLI no se presento como DB; el D1/R2/MP4 real se verifico en T22. Diff check verde. Base persistida local: 147 migraciones y user/projects/jobs/assets 0; no se respaldo ni restauro sobre el estado real. Demo anterior en 5173 conservada, puertos de E2E cerrados.
+
+F7-02 y F7-03 DONE, sin bloqueos locales. Sin costos, proveedores reales, deploy ni commit/push. Siguiente F7-04 exige autorizacion y presupuesto de piloto; V02-V06 y cloud/CI alojada/Linux siguen pendientes. El backup es offline, privado y sin cifrado propio (ver runbook); no se afirma consistencia con escritores activos ni recuperacion cloud.
